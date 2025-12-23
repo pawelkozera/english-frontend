@@ -176,19 +176,28 @@ export type EssayPayload = {
   attachmentsAllowed?: boolean;
 };
 
+export type Question =
+  | { kind: "OPEN"; prompt: string; sampleAnswer?: string }
+  | { kind: "MCQ"; prompt: string; options: string[]; correctIndex?: number }
+  | { kind: "TRUE_FALSE"; prompt: string; correct?: boolean };
+
+export type QuestionsBlock = {
+  questions?: Question[];
+};
+
 export type ReadingTextPayload = {
   kind: "READING_TEXT";
   title?: string;
   text: string;
-  questions?: { q: string; type: "OPEN" | "MCQ"; options?: string[] }[];
-};
+} & QuestionsBlock;
+
 
 export type YoutubeVideoPayload = {
   kind: "YOUTUBE_VIDEO";
-  url: string; // full URL
+  url: string;
   startSeconds?: number;
   notes?: string;
-};
+} & QuestionsBlock;
 
 export type CustomPayload = {
   kind: "CUSTOM";
