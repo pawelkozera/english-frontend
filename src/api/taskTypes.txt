@@ -1,0 +1,102 @@
+/**
+ * TASK TYPES (overview)
+ *
+ * Tasks are reusable building blocks that can be attached to lessons later.
+ * A task may be vocab-based (uses task_vocabulary join table) or non-vocab.
+ *
+ * Conventions:
+ * - `type` decides how the task is rendered and validated.
+ * - `payload` is type-specific configuration stored as JSON (JSONB on backend).
+ * - For consistency in the frontend, we include `payload.kind` equal to `type`.
+ *
+ * ------------------------
+ * VOCAB-BASED TASKS
+ * ------------------------
+ *
+ * VOCAB_FLASHCARDS
+ * - Simple flashcards (self-check).
+ * - Uses vocabularyIds to define the deck.
+ * - Typical payload:
+ *   {
+ *     kind: "VOCAB_FLASHCARDS",
+ *     direction: "EN_TO_PL" | "PL_TO_EN" | "BOTH",
+ *     shuffle?: boolean
+ *   }
+ *
+ * VOCAB_MATCHING
+ * - Matching pairs (e.g. EN ↔ PL). Usually shown as two columns to connect.
+ * - Uses vocabularyIds to define pairs.
+ * - Typical payload:
+ *   {
+ *     kind: "VOCAB_MATCHING",
+ *     direction: "EN_TO_PL" | "PL_TO_EN",
+ *     shuffle?: boolean
+ *   }
+ *
+ * VOCAB_MCQ
+ * - Multiple choice translation/meaning. Distractors can be generated from other vocabulary items.
+ * - Uses vocabularyIds as the “correct answers pool”.
+ * - Typical payload:
+ *   {
+ *     kind: "VOCAB_MCQ",
+ *     direction: "EN_TO_PL" | "PL_TO_EN",
+ *     optionsCount?: number,   // default: 4
+ *     shuffle?: boolean
+ *   }
+ *
+ * VOCAB_TYPING
+ * - User types the correct translation. Good for spelling practice.
+ * - Uses vocabularyIds as the pool.
+ * - Typical payload:
+ *   {
+ *     kind: "VOCAB_TYPING",
+ *     direction: "EN_TO_PL" | "PL_TO_EN",
+ *     caseSensitive?: boolean, // default: false
+ *     trimWhitespace?: boolean // default: true
+ *   }
+ *
+ * ------------------------
+ * NON-VOCAB TASKS
+ * ------------------------
+ *
+ * ESSAY
+ * - Long-form writing. No vocabularyIds required.
+ * - Typical payload:
+ *   {
+ *     kind: "ESSAY",
+ *     prompt: string,
+ *     minWords?: number,
+ *     maxWords?: number,
+ *     attachmentsAllowed?: boolean
+ *   }
+ *
+ * READING_TEXT
+ * - Reading comprehension: a text plus optional questions.
+ * - Typical payload:
+ *   {
+ *     kind: "READING_TEXT",
+ *     title?: string,
+ *     text: string,
+ *     questions?: Array<{
+ *       q: string,
+ *       type: "OPEN" | "MCQ",
+ *       options?: string[]
+ *     }>
+ *   }
+ *
+ * YOUTUBE_VIDEO
+ * - External video resource (e.g. for listening / summarizing).
+ * - Typical payload:
+ *   {
+ *     kind: "YOUTUBE_VIDEO",
+ *     url: string,
+ *     startSeconds?: number,
+ *     notes?: string
+ *   }
+ *
+ * CUSTOM
+ * - Escape hatch for future task types.
+ * - Keep `payload` flexible; UI can render a generic editor.
+ * - Typical payload:
+ *   { kind: "CUSTOM", ...anyFields }
+ */

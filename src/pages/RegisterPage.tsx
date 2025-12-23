@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { register } from "../lib/endpoints";
+import { register } from "../api/authApi";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 
@@ -24,7 +24,7 @@ export default function RegisterPage() {
           setErr(null);
           try {
             await register(email, password);
-            nav("/groups");
+            nav("/app");
           } catch (e: any) {
             setErr(e.message ?? "Register failed");
           }

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate, useLocation, Link } from "react-router-dom";
-import { login } from "../lib/endpoints";
+import { login } from "../api/authApi";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 
@@ -14,7 +14,7 @@ export default function LoginPage() {
   const [pending, setPending] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
-  const from = loc.state?.from ?? "/groups";
+  const from = loc.state?.from ?? "/app";
 
   return (
     <div className="mx-auto mt-16 w-full max-w-md rounded-2xl border bg-card/80 p-6 shadow-sm backdrop-blur">

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate, Link } from "react-router-dom";
-import { acceptInvite, invitePreview } from "../lib/endpoints";
+import { acceptInvite, previewInvite } from "../api/invitesApi";
 import { getAccessToken } from "../lib/auth";
 import { Button } from "../components/ui/button";
 
@@ -22,7 +22,7 @@ export default function JoinInvitePage() {
       if (!token) return;
       setState("loading");
       try {
-        const p = await invitePreview(token);
+        const p = await previewInvite(token);
         setPreview(p);
         setState("ready");
         // Drop the token from the URL to keep history clean.
@@ -71,7 +71,7 @@ export default function JoinInvitePage() {
               onClick={async () => {
                 try {
                   await acceptInvite(token);
-                  nav("/groups");
+                  nav("/app");
                 } catch (e: any) {
                   setErr(e.message ?? "Accept failed");
                 }

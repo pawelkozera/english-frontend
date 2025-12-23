@@ -1,10 +1,10 @@
-import { Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes } from "react-router-dom";
 import AuthRedirector from "./components/AuthRedirector";
 import RequireAuth from "./components/RequireAuth";
 import HomePage from "./pages/HomePage";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
-import GroupsPage from "./pages/GroupsPage";
+import MainPage from "./pages/MainPage";
 import JoinInvitePage from "./pages/JoinInvitePage";
 
 export default function App() {
@@ -16,11 +16,12 @@ export default function App() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/join" element={<JoinInvitePage />} />
+        <Route path="/groups" element={<Navigate to="/app" replace />} />
         <Route
-          path="/groups"
+          path="/app"
           element={
             <RequireAuth>
-              <GroupsPage />
+              <MainPage />
             </RequireAuth>
           }
         />

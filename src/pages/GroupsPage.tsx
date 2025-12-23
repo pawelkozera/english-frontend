@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { createGroup, myGroups, logout } from "../lib/endpoints";
+import { createGroup, myGroups } from "../api/groupsApi";
+import { logout } from "../api/authApi"
 import { useNavigate } from "react-router-dom";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
@@ -53,8 +54,11 @@ export default function GroupsPage() {
           />
           <Button
             onClick={async () => {
-              if (!name.trim()) return;
-              const created = await createGroup(name);
+              const trimmed = name.trim();
+              if (!trimmed) return;
+
+              const created = await createGroup({ name: trimmed });
+              setName("");
               qc.setQueryData(["groups"], (old: any) => (old ? [created, ...old] : [created]));
               setName("");
               await qc.invalidateQueries({ queryKey: ["groups"] });
