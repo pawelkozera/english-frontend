@@ -529,17 +529,23 @@ export default function TaskManager() {
       {actionError && <p className="text-sm text-destructive">{actionError}</p>}
 
       <div className="space-y-4">
-        <TaskFilters
-          search={taskSearch}
-          setSearch={setTaskSearch}
-          type={taskType}
-          setType={setTaskType}
-          status={taskStatus}
-          setStatus={setTaskStatus}
-        />
+        <div className="flex flex-col gap-3">
+          <div>
+            <p className="text-sm text-muted-foreground">Entries</p>
+            <h3 className="text-xl font-semibold text-foreground">All tasks</h3>
+          </div>
+          <TaskFilters
+            search={taskSearch}
+            setSearch={setTaskSearch}
+            type={taskType}
+            setType={setTaskType}
+            status={taskStatus}
+            setStatus={setTaskStatus}
+          />
+          {tasksQuery.data && <p className="text-xs text-muted-foreground">{totalElements} items</p>}
+        </div>
         <TaskList
           tasks={tasks}
-          totalElements={totalElements}
           totalPages={totalPages}
           page={taskPage}
           onPrev={() => setTaskPage((p) => Math.max(0, p - 1))}

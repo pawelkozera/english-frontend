@@ -124,11 +124,13 @@ export default function McqTask({ items, direction, shuffle, optionsCount = 4 }:
               key={`${currentItem.id}-${idx}`}
               type="button"
               className={`rounded-md border px-3 py-2 text-sm ${
-                selectedOption === opt ? "border-primary bg-primary/10" : ""
-              } ${
-                submitted && opt === correct ? "border-emerald-500 bg-emerald-100/60" : ""
-              } ${
-                submitted && selectedOption === opt && opt !== correct ? "border-rose-500 bg-rose-100/60" : ""
+                submitted && opt === correct
+                  ? "border-emerald-500 bg-emerald-100/60"
+                  : submitted && selectedOption === opt && opt !== correct
+                    ? "border-rose-500 bg-rose-100/60"
+                    : selectedOption === opt
+                      ? "border-primary bg-primary/10"
+                      : ""
               }`}
               onClick={() => {
                 if (submitted) return;

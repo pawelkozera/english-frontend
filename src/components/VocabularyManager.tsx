@@ -89,12 +89,6 @@ export default function VocabularyManager() {
           <p className="text-sm text-muted-foreground">Vocabulary bank</p>
           <h2 className="text-2xl font-semibold text-foreground">Manage vocabulary</h2>
         </div>
-        <Input
-          placeholder="Search..."
-          value={vocabSearch}
-          onChange={(e) => setVocabSearch(e.target.value)}
-          className="w-full max-w-xs"
-        />
       </div>
 
       <div className="rounded-2xl border bg-background/70 p-5">
@@ -375,15 +369,22 @@ export default function VocabularyManager() {
       {actionError && <p className="text-sm text-destructive">{actionError}</p>}
 
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm text-muted-foreground">Entries</p>
-            <h3 className="text-xl font-semibold text-foreground">All vocabulary</h3>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="flex w-full max-w-xs flex-col gap-3">
+            <div>
+              <p className="text-sm text-muted-foreground">Entries</p>
+              <h3 className="text-xl font-semibold text-foreground">All vocabulary</h3>
+            </div>
+            <Input
+              placeholder="Search..."
+              value={vocabSearch}
+              onChange={(e) => setVocabSearch(e.target.value)}
+            />
           </div>
-          {vocabularyQuery.data && (
-            <p className="text-xs text-muted-foreground">{vocabularyQuery.data.totalElements} items</p>
-          )}
         </div>
+        {vocabularyQuery.data && (
+          <p className="text-xs text-muted-foreground">{vocabularyQuery.data.totalElements} items</p>
+        )}
 
         {vocabularyQuery.isLoading && <p className="text-sm text-muted-foreground">Loading vocabulary...</p>}
         {vocabularyQuery.error && <p className="text-sm text-destructive">{String(vocabularyQuery.error)}</p>}

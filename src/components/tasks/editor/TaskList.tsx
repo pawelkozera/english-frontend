@@ -5,7 +5,6 @@ import { typeLabel } from "./taskConstants";
 
 type TaskListProps = {
   tasks: TaskResponse[];
-  totalElements: number;
   totalPages: number;
   page: number;
   onPrev: () => void;
@@ -20,7 +19,6 @@ type TaskListProps = {
 
 export default function TaskList({
   tasks,
-  totalElements,
   totalPages,
   page,
   onPrev,
@@ -34,14 +32,6 @@ export default function TaskList({
 }: TaskListProps) {
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-sm text-muted-foreground">Entries</p>
-          <h3 className="text-xl font-semibold text-foreground">All tasks</h3>
-        </div>
-        <p className="text-xs text-muted-foreground">{totalElements} items</p>
-      </div>
-
       {loading && <p className="text-sm text-muted-foreground">Loading tasks...</p>}
       {error && <p className="text-sm text-destructive">{error}</p>}
 
