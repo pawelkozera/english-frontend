@@ -232,3 +232,64 @@ export type UpdateTaskRequest = {
 export type ReplaceTaskVocabularyRequest = {
   vocabularyIds: number[];
 };
+
+export type LessonStatus = "DRAFT" | "PUBLISHED" | "ARCHIVED";
+export type LessonItemType = "TASK";
+
+export type CreateLessonRequest = {
+  title: string;
+  description?: string | null;
+  status?: LessonStatus; // default backend: DRAFT
+};
+
+export type UpdateLessonRequest = {
+  title: string;
+  description?: string | null;
+  status: LessonStatus;
+};
+
+export type ReplaceLessonItemsRequest = {
+  taskIds: number[]; // ordered list
+};
+
+export type LessonItemResponse = {
+  position: number;
+  itemType: LessonItemType;
+  taskId: number | null;
+};
+
+export type LessonResponse = {
+  id: number;
+  title: string;
+  description: string | null;
+  status: LessonStatus;
+  items: LessonItemResponse[];
+  createdAt: IsoDateTime;
+  updatedAt: IsoDateTime;
+};
+
+// ===== Lesson assignments (group-wide + per-user in group) =====
+
+export type AssignLessonRequest = {
+  assignedToUserId?: number | null; // null/undefined => group-wide
+  visibleFrom?: IsoDateTime | null;
+  visibleTo?: IsoDateTime | null;
+};
+
+export type LessonAssignmentResponse = {
+  id: number;
+  groupId: number;
+  lessonId: number;
+  lessonTitle: string;
+  lessonStatus: "DRAFT" | "PUBLISHED" | "ARCHIVED";
+  assignedToUserId: number | null;
+  displayOrder: number;
+  visibleFrom: IsoDateTime | null;
+  visibleTo: IsoDateTime | null;
+  createdAt: IsoDateTime;
+};
+
+export type ReorderLessonAssignmentsRequest = {
+  userId?: number | null; // null/undefined => reorder group-wide bucket
+  assignmentIds: number[];
+};

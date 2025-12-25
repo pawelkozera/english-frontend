@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { logout } from "../api/authApi";
 import { createGroup, groupDetails, joinGroup, myGroups, resetJoinCode } from "../api/groupsApi";
@@ -10,6 +10,7 @@ import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import VocabularyManager from "../components/VocabularyManager";
 import TaskManager from "../components/TaskManager";
+import LessonManager from "../components/LessonManager";
 
 const GROUPS_QUERY_KEY = ["groups"];
 const ACTIVE_GROUP_KEY = "activeGroupId";
@@ -37,12 +38,16 @@ function extractInviteToken(value: string) {
 
 export default function MainPage() {
   const nav = useNavigate();
+  const loc = useLocation();
   const qc = useQueryClient();
   const q = useQuery(groupsQueryOptions);
 
   const groups = q.data ?? [];
 
-  const [activeTab, setActiveTab] = useState<"overview" | "groups" | "group" | "vocab" | "tasks">("groups");
+  const [activeTab, setActiveTab] = useState<"overview" | "groups" | "group" | "vocab" | "tasks" | "lessons">(
+    "groups"
+  );
+  const [initialTaskId, setInitialTaskId] = useState<number | null>(null);
   const [name, setName] = useState("");
   const [inviteLink, setInviteLink] = useState("");
   const [inviteCode, setInviteCode] = useState("");
@@ -92,6 +97,21 @@ export default function MainPage() {
     if (!selectedGroupId) return;
     localStorage.setItem(ACTIVE_GROUP_KEY, String(selectedGroupId));
   }, [selectedGroupId]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(loc.search);
+    const tab = params.get("tab");
+    const taskIdParam = params.get("taskId");
+    if (tab === "tasks") {
+      setActiveTab("tasks");
+    }
+    if (taskIdParam) {
+      const parsed = Number(taskIdParam);
+      setInitialTaskId(Number.isFinite(parsed) ? parsed : null);
+    } else {
+      setInitialTaskId(null);
+    }
+  }, [loc.search]);
 
   const selectedGroup = useMemo(
     () => groups.find((g) => g.id === selectedGroupId) ?? null,
@@ -189,6 +209,11 @@ export default function MainPage() {
           <Button variant={activeTab === "tasks" ? "default" : "ghost"} onClick={() => setActiveTab("tasks")}>
             Tasks
           </Button>
+          {isTeacher && (
+            <Button variant={activeTab === "lessons" ? "default" : "ghost"} onClick={() => setActiveTab("lessons")}>
+              Lessons
+            </Button>
+          )}
         </nav>
 
         {activeTab === "overview" && (
@@ -608,7 +633,8 @@ export default function MainPage() {
         )}
 
         {activeTab === "vocab" && <VocabularyManager />}
-        {activeTab === "tasks" && <TaskManager />}
+        {activeTab === "tasks" && <TaskManager initialEditTaskId={initialTaskId} />}
+        {isTeacher && activeTab === "lessons" && <LessonManager />}
       </div>
     </div>
   );

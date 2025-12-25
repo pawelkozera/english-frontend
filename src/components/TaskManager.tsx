@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import type { Question, TaskResponse, TaskStatus, TaskType, VocabDirection } from "../api/types";
-import { createTask, deleteTask, replaceTaskVocabulary, searchTasks, updateTask } from "../api/tasksApi";
+import { createTask, deleteTask, getTask, replaceTaskVocabulary, searchTasks, updateTask } from "../api/tasksApi";
 import { searchVocabulary } from "../api/vocabularyApi";
+import useDebouncedValue from "../lib/useDebouncedValue";
 import TaskEditor from "./tasks/editor/TaskEditor";
 import TaskFilters from "./tasks/editor/TaskFilters";
 import TaskList from "./tasks/editor/TaskList";
@@ -71,7 +72,11 @@ function validateQuestions(questions: Question[]) {
   return null;
 }
 
-export default function TaskManager() {
+type TaskManagerProps = {
+  initialEditTaskId?: number | null;
+};
+
+export default function TaskManager({ initialEditTaskId = null }: TaskManagerProps) {
   const [taskSearch, setTaskSearch] = useState("");
   const [taskType, setTaskType] = useState<TaskType | "ALL">("ALL");
   const [taskStatus, setTaskStatus] = useState<TaskStatus | "ALL">("ALL");
@@ -116,14 +121,17 @@ export default function TaskManager() {
   const [vocabPage, setVocabPage] = useState(0);
   const [selectedVocabIds, setSelectedVocabIds] = useState<number[]>([]);
 
+  const debouncedTaskSearch = useDebouncedValue(taskSearch, 300);
+  const debouncedVocabSearch = useDebouncedValue(vocabSearch, 300);
+
   const [actionError, setActionError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
   const tasksQuery = useQuery({
-    queryKey: ["tasks", taskSearch, taskType, taskStatus, taskPage, TASK_PAGE_SIZE],
+    queryKey: ["tasks", debouncedTaskSearch, taskType, taskStatus, taskPage, TASK_PAGE_SIZE],
     queryFn: () =>
       searchTasks({
-        q: taskSearch,
+        q: debouncedTaskSearch,
         type: taskType === "ALL" ? undefined : taskType,
         status: taskStatus === "ALL" ? undefined : taskStatus,
         page: taskPage,
@@ -132,17 +140,17 @@ export default function TaskManager() {
   });
 
   const vocabQuery = useQuery({
-    queryKey: ["vocabulary", vocabSearch, vocabPage, VOCAB_PAGE_SIZE],
-    queryFn: () => searchVocabulary({ q: vocabSearch, page: vocabPage, size: VOCAB_PAGE_SIZE }),
+    queryKey: ["vocabulary", debouncedVocabSearch, vocabPage, VOCAB_PAGE_SIZE],
+    queryFn: () => searchVocabulary({ q: debouncedVocabSearch, page: vocabPage, size: VOCAB_PAGE_SIZE }),
   });
 
   useEffect(() => {
     setTaskPage(0);
-  }, [taskSearch, taskType, taskStatus]);
+  }, [debouncedTaskSearch, taskType, taskStatus]);
 
   useEffect(() => {
     setVocabPage(0);
-  }, [vocabSearch]);
+  }, [debouncedVocabSearch]);
 
   useEffect(() => {
     if (!tasksQuery.data) return;
@@ -246,6 +254,24 @@ export default function TaskManager() {
       setCustomPayloadJson(JSON.stringify(payload, null, 2));
     }
   }
+
+  useEffect(() => {
+    if (!initialEditTaskId) return;
+    if (editingTask?.id === initialEditTaskId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const task = await getTask(initialEditTaskId);
+        if (cancelled) return;
+        loadFromTask(task);
+      } catch (e: any) {
+        if (!cancelled) setActionError(e?.message ?? "Failed to load task.");
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [initialEditTaskId, editingTask?.id]);
 
   function toggleVocabId(id: number) {
     setSelectedVocabIds((prev) => (prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]));

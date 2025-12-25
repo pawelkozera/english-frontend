@@ -1,4 +1,4 @@
-import { getAccessToken, setAccessToken } from "./auth";
+import { getAccessToken, refreshAccessToken, setAccessToken } from "./auth";
 
 export type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 
@@ -7,24 +7,6 @@ type ApiOptions = {
   body?: unknown;
   auth?: boolean;
 };
-
-type RefreshResponse = { accessToken: string };
-
-async function refreshAccessToken(): Promise<string | null> {
-  const res = await fetch("/api/auth/refresh", {
-    method: "POST",
-    credentials: "include",
-  });
-
-  if (!res.ok) {
-    setAccessToken(null);
-    return null;
-  }
-
-  const data = (await res.json()) as RefreshResponse;
-  setAccessToken(data.accessToken);
-  return data.accessToken;
-}
 
 async function parseJsonOrVoid<T>(res: Response): Promise<T> {
   const ct = res.headers.get("content-type") ?? "";

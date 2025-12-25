@@ -2,6 +2,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { createVocabulary, deleteVocabulary, searchVocabulary, updateVocabulary } from "../api/vocabularyApi";
 import { deleteMedia, fetchMediaBlob, uploadMedia } from "../api/mediaApi";
+import useDebouncedValue from "../lib/useDebouncedValue";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 
@@ -33,15 +34,16 @@ export default function VocabularyManager() {
   const [audioPreviewVisible, setAudioPreviewVisible] = useState<Record<number, boolean>>({});
   const [imageModalUrl, setImageModalUrl] = useState<string | null>(null);
   const [imageModalAlt, setImageModalAlt] = useState<string | null>(null);
+  const debouncedVocabSearch = useDebouncedValue(vocabSearch, 300);
 
   const vocabularyQuery = useQuery({
-    queryKey: ["vocabulary", vocabSearch, vocabPage, VOCAB_PAGE_SIZE],
-    queryFn: () => searchVocabulary({ q: vocabSearch, page: vocabPage, size: VOCAB_PAGE_SIZE }),
+    queryKey: ["vocabulary", debouncedVocabSearch, vocabPage, VOCAB_PAGE_SIZE],
+    queryFn: () => searchVocabulary({ q: debouncedVocabSearch, page: vocabPage, size: VOCAB_PAGE_SIZE }),
   });
 
   useEffect(() => {
     setVocabPage(0);
-  }, [vocabSearch]);
+  }, [debouncedVocabSearch]);
 
   useEffect(() => {
     return () => {
