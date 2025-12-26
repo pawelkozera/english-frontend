@@ -12,7 +12,8 @@ import type {
   AssignLessonRequest,
   LessonAssignmentResponse,
   ReorderLessonAssignmentsRequest,
-  Page
+  Page,
+  IsoDateTime
 } from "./types";
 
 export async function assignLessonToGroupOrUser(
@@ -89,4 +90,31 @@ export async function listGroupLessonAssignmentsPaged(params: {
     `/api/groups/${params.groupId}/lessons/assignments?${usp.toString()}`,
     { method: "GET", auth: true }
   );
+}
+
+export async function unassignLesson(groupId: number, assignmentId: number) {
+  return api<void>(`/api/groups/${groupId}/lessons/assignments/${assignmentId}`, {
+    method: "DELETE",
+    auth: true,
+  });
+}
+
+export type UpdateLessonAssignmentRequest = {
+  visibleFrom?: IsoDateTime | null;
+  visibleTo?: IsoDateTime | null;
+};
+
+export async function updateLessonAssignment(
+  groupId: number,
+  assignmentId: number,
+  req: UpdateLessonAssignmentRequest
+) {
+  return api<LessonAssignmentResponse>(`/api/groups/${groupId}/lessons/assignments/${assignmentId}`, {
+    method: "PATCH",
+    auth: true,
+    body: {
+      visibleFrom: req.visibleFrom ?? null,
+      visibleTo: req.visibleTo ?? null,
+    },
+  });
 }

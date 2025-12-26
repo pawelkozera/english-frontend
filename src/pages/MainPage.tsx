@@ -11,6 +11,7 @@ import { Input } from "../components/ui/input";
 import VocabularyManager from "../components/VocabularyManager";
 import TaskManager from "../components/TaskManager";
 import LessonManager from "../components/LessonManager";
+import LessonAssignmentsManager from "../components/LessonAssignmentsManager";
 
 const GROUPS_QUERY_KEY = ["groups"];
 const ACTIVE_GROUP_KEY = "activeGroupId";
@@ -44,9 +45,9 @@ export default function MainPage() {
 
   const groups = q.data ?? [];
 
-  const [activeTab, setActiveTab] = useState<"overview" | "groups" | "group" | "vocab" | "tasks" | "lessons">(
-    "groups"
-  );
+  const [activeTab, setActiveTab] = useState<
+    "overview" | "groups" | "group" | "vocab" | "tasks" | "lessons" | "lesson-assignments"
+  >("groups");
   const [initialTaskId, setInitialTaskId] = useState<number | null>(null);
   const [name, setName] = useState("");
   const [inviteLink, setInviteLink] = useState("");
@@ -212,6 +213,14 @@ export default function MainPage() {
           {isTeacher && (
             <Button variant={activeTab === "lessons" ? "default" : "ghost"} onClick={() => setActiveTab("lessons")}>
               Lessons
+            </Button>
+          )}
+          {isTeacher && (
+            <Button
+              variant={activeTab === "lesson-assignments" ? "default" : "ghost"}
+              onClick={() => setActiveTab("lesson-assignments")}
+            >
+              Lesson assignments
             </Button>
           )}
         </nav>
@@ -627,6 +636,7 @@ export default function MainPage() {
                     </div>
                   </div>
                 )}
+
               </>
             )}
           </section>
@@ -635,6 +645,9 @@ export default function MainPage() {
         {activeTab === "vocab" && <VocabularyManager />}
         {activeTab === "tasks" && <TaskManager initialEditTaskId={initialTaskId} />}
         {isTeacher && activeTab === "lessons" && <LessonManager />}
+        {isTeacher && activeTab === "lesson-assignments" && selectedGroupId && (
+          <LessonAssignmentsManager groupId={selectedGroupId} members={membersQuery.data ?? []} />
+        )}
       </div>
     </div>
   );
