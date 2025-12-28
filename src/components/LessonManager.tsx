@@ -6,6 +6,7 @@ import { getTask, searchTasks } from "../api/tasksApi";
 import useDebouncedValue from "../lib/useDebouncedValue";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
+import TaskPreview from "./TaskPreview";
 import { TASK_STATUSES, TASK_TYPES, typeLabel } from "./tasks/editor/taskConstants";
 
 const LESSON_PAGE_SIZE = 8;
@@ -27,6 +28,7 @@ export default function LessonManager() {
   const [taskPage, setTaskPage] = useState(0);
   const [taskLookup, setTaskLookup] = useState<Record<number, TaskResponse>>({});
   const [dragTaskId, setDragTaskId] = useState<number | null>(null);
+  const [previewOpenTaskIds, setPreviewOpenTaskIds] = useState<number[]>([]);
   const [previewOpenLessonIds, setPreviewOpenLessonIds] = useState<number[]>([]);
 
   const [lessonSearch, setLessonSearch] = useState("");
@@ -364,22 +366,36 @@ export default function LessonManager() {
               <ul className="space-y-2">
                 {tasksQuery.data.content.map((task) => {
                   const isSelected = selectedTaskIds.includes(task.id);
+                  const isPreviewOpen = previewOpenTaskIds.includes(task.id);
                   return (
                     <li key={task.id} className="rounded-lg border bg-background/70 px-3 py-2 text-sm">
-                      <label className="flex cursor-pointer items-start gap-2">
-                        <input
-                          type="checkbox"
-                          className="mt-1"
-                          checked={isSelected}
-                          onChange={() => toggleTask(task.id)}
-                        />
-                        <div>
-                          <p className="font-medium text-foreground">{task.title}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {typeLabel(task.type)} - {task.status}
-                          </p>
-                        </div>
-                      </label>
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <label className="flex cursor-pointer items-start gap-2">
+                          <input
+                            type="checkbox"
+                            className="mt-1"
+                            checked={isSelected}
+                            onChange={() => toggleTask(task.id)}
+                          />
+                          <div>
+                            <p className="font-medium text-foreground">{task.title}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {typeLabel(task.type)} - {task.status}
+                            </p>
+                          </div>
+                        </label>
+                        <Button
+                          variant="ghost"
+                          onClick={() =>
+                            setPreviewOpenTaskIds((prev) =>
+                              prev.includes(task.id) ? prev.filter((id) => id !== task.id) : [...prev, task.id]
+                            )
+                          }
+                        >
+                          {isPreviewOpen ? "Hide preview" : "Preview"}
+                        </Button>
+                      </div>
+                      {isPreviewOpen && <TaskPreview task={task} />}
                     </li>
                   );
                 })}

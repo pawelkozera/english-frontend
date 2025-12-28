@@ -4,6 +4,7 @@ import type { LessonAssignmentResponse, MemberResponse } from "../api/types";
 import { listMyLessons } from "../api/lessonsApi";
 import {
   assignLessonToGroupOrUser,
+  bulkAssignLessons,
   listGroupLessonAssignmentsPaged,
   reorderGroupLessonAssignments,
   unassignLesson,
@@ -25,7 +26,7 @@ export default function LessonAssignmentsManager({ groupId, members }: LessonAss
   const [lessonSearch, setLessonSearch] = useState("");
   const [lessonPage, setLessonPage] = useState(0);
   const [includeArchived, setIncludeArchived] = useState(false);
-  const [selectedLessonId, setSelectedLessonId] = useState<number | null>(null);
+  const [selectedLessonIds, setSelectedLessonIds] = useState<number[]>([]);
   const [assignTarget, setAssignTarget] = useState<string>("GROUP");
   const [visibleFromDate, setVisibleFromDate] = useState("");
   const [visibleFromTime, setVisibleFromTime] = useState("");
@@ -121,8 +122,8 @@ export default function LessonAssignmentsManager({ groupId, members }: LessonAss
 
   async function handleAssign() {
     setActionError(null);
-    if (!selectedLessonId) {
-      setActionError("Select a lesson to assign.");
+    if (!selectedLessonIds.length) {
+      setActionError("Select at least one lesson to assign.");
       return;
     }
 
@@ -141,18 +142,28 @@ export default function LessonAssignmentsManager({ groupId, members }: LessonAss
 
     setSaving(true);
     try {
-      await assignLessonToGroupOrUser(groupId, selectedLessonId, {
-        assignedToUserId: targetUserId,
-        visibleFrom: fromDt ? fromDt.toISOString() : null,
-        visibleTo: toDt ? toDt.toISOString() : null,
-      });
+      if (selectedLessonIds.length === 1) {
+        await assignLessonToGroupOrUser(groupId, selectedLessonIds[0], {
+          assignedToUserId: targetUserId,
+          visibleFrom: fromDt ? fromDt.toISOString() : null,
+          visibleTo: toDt ? toDt.toISOString() : null,
+        });
+      } else {
+        await bulkAssignLessons(groupId, {
+          lessonIds: selectedLessonIds,
+          assignedToUserId: targetUserId,
+          visibleFrom: fromDt ? fromDt.toISOString() : null,
+          visibleTo: toDt ? toDt.toISOString() : null,
+        });
+      }
       setVisibleFromDate("");
       setVisibleFromTime("");
       setVisibleToDate("");
       setVisibleToTime("");
+      setSelectedLessonIds([]);
       await assignmentsQuery.refetch();
     } catch (e: any) {
-      setActionError(e?.message ?? "Failed to assign lesson.");
+      setActionError(e?.message ?? "Failed to assign lesson(s).");
     } finally {
       setSaving(false);
     }
@@ -222,6 +233,12 @@ export default function LessonAssignmentsManager({ groupId, members }: LessonAss
     setLocalAssignments(next);
     setDragAssignmentId(null);
     void handleReorder(next);
+  }
+
+  function toggleLessonSelection(lessonId: number) {
+    setSelectedLessonIds((prev) =>
+      prev.includes(lessonId) ? prev.filter((id) => id !== lessonId) : [...prev, lessonId]
+    );
   }
 
   function renderAssignmentTile(assignment: LessonAssignmentResponse) {
@@ -367,18 +384,32 @@ export default function LessonAssignmentsManager({ groupId, members }: LessonAss
             {lessonsQuery.error && <p className="text-sm text-destructive">{String(lessonsQuery.error)}</p>}
             {lessonsQuery.data && (
               <>
-                <select
-                  className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
-                  value={selectedLessonId ?? ""}
-                  onChange={(e) => setSelectedLessonId(e.target.value ? Number(e.target.value) : null)}
-                >
-                  <option value="">Select a lesson</option>
-                  {lessons.map((lesson) => (
-                    <option key={lesson.id} value={lesson.id}>
-                      {lesson.title} ({lesson.status})
-                    </option>
-                  ))}
-                </select>
+                {lessons.length === 0 && (
+                  <p className="text-sm text-muted-foreground">No lessons found.</p>
+                )}
+                {lessons.length > 0 && (
+                  <ul className="grid gap-3 sm:grid-cols-2">
+                    {lessons.map((lesson) => {
+                      const checked = selectedLessonIds.includes(lesson.id);
+                      return (
+                        <li key={lesson.id} className="rounded-xl border bg-background/70 p-3 text-sm">
+                          <label className="flex cursor-pointer items-start gap-2">
+                            <input
+                              type="checkbox"
+                              className="mt-1"
+                              checked={checked}
+                              onChange={() => toggleLessonSelection(lesson.id)}
+                            />
+                            <div>
+                              <p className="font-medium text-foreground">{lesson.title}</p>
+                              <p className="text-xs text-muted-foreground">{lesson.status}</p>
+                            </div>
+                          </label>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
                 <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-muted-foreground">
                   <span>
                     Page {lessonsQuery.data.number + 1} / {totalLessonPages}

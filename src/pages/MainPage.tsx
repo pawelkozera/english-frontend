@@ -12,6 +12,8 @@ import VocabularyManager from "../components/VocabularyManager";
 import TaskManager from "../components/TaskManager";
 import LessonManager from "../components/LessonManager";
 import LessonAssignmentsManager from "../components/LessonAssignmentsManager";
+import MainMenu from "../components/MainMenu";
+import LessonsOverview from "../components/LessonsOverview";
 
 const GROUPS_QUERY_KEY = ["groups"];
 const ACTIVE_GROUP_KEY = "activeGroupId";
@@ -45,9 +47,11 @@ export default function MainPage() {
 
   const groups = q.data ?? [];
 
-  const [activeTab, setActiveTab] = useState<
-    "overview" | "groups" | "group" | "vocab" | "tasks" | "lessons" | "lesson-assignments"
+  const [activeSection, setActiveSection] = useState<
+    "overview" | "lessons" | "groups" | "library" | "assignments"
   >("groups");
+  const [groupsTab, setGroupsTab] = useState<"manage" | "management">("manage");
+  const [libraryTab, setLibraryTab] = useState<"vocab" | "tasks" | "lessons">("vocab");
   const [initialTaskId, setInitialTaskId] = useState<number | null>(null);
   const [name, setName] = useState("");
   const [inviteLink, setInviteLink] = useState("");
@@ -62,7 +66,7 @@ export default function MainPage() {
 
   useEffect(() => {
     setActionError(null);
-  }, [activeTab, selectedGroupId]);
+  }, [activeSection, groupsTab, libraryTab, selectedGroupId]);
   useEffect(() => {
     setInvitePage(1);
   }, [selectedGroupId]);
@@ -103,8 +107,34 @@ export default function MainPage() {
     const params = new URLSearchParams(loc.search);
     const tab = params.get("tab");
     const taskIdParam = params.get("taskId");
+    if (tab === "overview") {
+      setActiveSection("overview");
+    }
+    if (tab === "lessons") {
+      setActiveSection("lessons");
+    }
+    if (tab === "groups") {
+      setActiveSection("groups");
+      setGroupsTab("manage");
+    }
+    if (tab === "group") {
+      setActiveSection("groups");
+      setGroupsTab("management");
+    }
+    if (tab === "vocab") {
+      setActiveSection("library");
+      setLibraryTab("vocab");
+    }
     if (tab === "tasks") {
-      setActiveTab("tasks");
+      setActiveSection("library");
+      setLibraryTab("tasks");
+    }
+    if (tab === "library-lessons") {
+      setActiveSection("library");
+      setLibraryTab("lessons");
+    }
+    if (tab === "lesson-assignments") {
+      setActiveSection("assignments");
     }
     if (taskIdParam) {
       const parsed = Number(taskIdParam);
@@ -120,6 +150,15 @@ export default function MainPage() {
   );
   const isTeacher = selectedGroup?.myRole === "TEACHER";
   const isStudent = selectedGroup?.myRole === "STUDENT";
+
+  useEffect(() => {
+    if (!isTeacher && activeSection === "assignments") {
+      setActiveSection("groups");
+    }
+    if (!isTeacher && libraryTab === "lessons") {
+      setLibraryTab("vocab");
+    }
+  }, [activeSection, isTeacher, libraryTab]);
 
   const groupDetailsQuery = useQuery({
     queryKey: ["groupDetails", selectedGroupId],
@@ -194,38 +233,17 @@ export default function MainPage() {
           </div>
         </div>
 
-        <nav className="flex flex-wrap gap-2">
-          <Button variant={activeTab === "overview" ? "default" : "ghost"} onClick={() => setActiveTab("overview")}>
-            Overview
-          </Button>
-          <Button variant={activeTab === "groups" ? "default" : "ghost"} onClick={() => setActiveTab("groups")}>
-            Manage groups
-          </Button>
-          <Button variant={activeTab === "group" ? "default" : "ghost"} onClick={() => setActiveTab("group")}>
-            Group management
-          </Button>
-          <Button variant={activeTab === "vocab" ? "default" : "ghost"} onClick={() => setActiveTab("vocab")}>
-            Vocabulary
-          </Button>
-          <Button variant={activeTab === "tasks" ? "default" : "ghost"} onClick={() => setActiveTab("tasks")}>
-            Tasks
-          </Button>
-          {isTeacher && (
-            <Button variant={activeTab === "lessons" ? "default" : "ghost"} onClick={() => setActiveTab("lessons")}>
-              Lessons
-            </Button>
-          )}
-          {isTeacher && (
-            <Button
-              variant={activeTab === "lesson-assignments" ? "default" : "ghost"}
-              onClick={() => setActiveTab("lesson-assignments")}
-            >
-              Lesson assignments
-            </Button>
-          )}
-        </nav>
+        <MainMenu
+          activeSection={activeSection}
+          onSectionChange={setActiveSection}
+          groupsTab={groupsTab}
+          onGroupsTabChange={setGroupsTab}
+          libraryTab={libraryTab}
+          onLibraryTabChange={setLibraryTab}
+          isTeacher={!!isTeacher}
+        />
 
-        {activeTab === "overview" && (
+        {activeSection === "overview" && (
           <section className="rounded-2xl border bg-card/70 p-6 shadow-sm backdrop-blur">
             <p className="text-sm text-muted-foreground">Selected group</p>
             <h2 className="text-2xl font-semibold text-foreground">
@@ -237,7 +255,15 @@ export default function MainPage() {
           </section>
         )}
 
-        {activeTab === "groups" && (
+        {activeSection === "lessons" && (
+          <LessonsOverview
+            groupId={selectedGroupId}
+            isTeacher={!!isTeacher}
+            members={membersQuery.data ?? []}
+          />
+        )}
+
+        {activeSection === "groups" && groupsTab === "manage" && (
           <section className="space-y-6 rounded-2xl border bg-card/70 p-6 shadow-sm backdrop-blur">
             <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
               <div className="space-y-4">
@@ -347,7 +373,7 @@ export default function MainPage() {
           </section>
         )}
 
-        {activeTab === "group" && (
+        {activeSection === "groups" && groupsTab === "management" && (
           <section className="space-y-6 rounded-2xl border bg-card/70 p-6 shadow-sm backdrop-blur">
             {!selectedGroup && <p className="text-sm text-muted-foreground">Select a group to manage.</p>}
 
@@ -642,11 +668,20 @@ export default function MainPage() {
           </section>
         )}
 
-        {activeTab === "vocab" && <VocabularyManager />}
-        {activeTab === "tasks" && <TaskManager initialEditTaskId={initialTaskId} />}
-        {isTeacher && activeTab === "lessons" && <LessonManager />}
-        {isTeacher && activeTab === "lesson-assignments" && selectedGroupId && (
-          <LessonAssignmentsManager groupId={selectedGroupId} members={membersQuery.data ?? []} />
+        {activeSection === "library" && libraryTab === "vocab" && <VocabularyManager />}
+        {activeSection === "library" && libraryTab === "tasks" && <TaskManager initialEditTaskId={initialTaskId} />}
+        {isTeacher && activeSection === "library" && libraryTab === "lessons" && <LessonManager />}
+        {activeSection === "assignments" && (
+          <>
+            {!selectedGroupId && (
+              <section className="rounded-2xl border bg-card/70 p-6 text-sm text-muted-foreground shadow-sm backdrop-blur">
+                Select a group first to assign lessons.
+              </section>
+            )}
+            {isTeacher && selectedGroupId && (
+              <LessonAssignmentsManager groupId={selectedGroupId} members={membersQuery.data ?? []} />
+            )}
+          </>
         )}
       </div>
     </div>

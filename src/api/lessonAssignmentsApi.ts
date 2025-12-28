@@ -118,3 +118,28 @@ export async function updateLessonAssignment(
     },
   });
 }
+
+export type BulkAssignLessonsRequest = {
+  lessonIds: number[];
+  assignedToUserId?: number | null; // omit/null => group-wide
+  visibleFrom?: IsoDateTime | null;
+  visibleTo?: IsoDateTime | null;
+};
+
+export type BulkAssignLessonsResponse = {
+  created: LessonAssignmentResponse[];
+  skipped: Array<{ lessonId: number; reason: string; existingAssignmentId: number | null }>;
+};
+
+export async function bulkAssignLessons(groupId: number, req: BulkAssignLessonsRequest) {
+  return api<BulkAssignLessonsResponse>(`/api/groups/${groupId}/lessons/assignments/bulk`, {
+    method: "POST",
+    auth: true,
+    body: {
+      lessonIds: req.lessonIds,
+      assignedToUserId: req.assignedToUserId ?? null,
+      visibleFrom: req.visibleFrom ?? null,
+      visibleTo: req.visibleTo ?? null,
+    },
+  });
+}
