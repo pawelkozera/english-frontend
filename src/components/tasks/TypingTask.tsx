@@ -14,6 +14,7 @@ type TypingTaskProps = {
   shuffle?: boolean;
   caseSensitive?: boolean;
   trimWhitespace?: boolean;
+  onComplete?: () => void;
 };
 
 function shuffleItems<T>(items: T[]) {
@@ -43,6 +44,7 @@ export default function TypingTask({
   shuffle,
   caseSensitive = false,
   trimWhitespace = true,
+  onComplete,
 }: TypingTaskProps) {
   const orderedItems = useMemo(() => {
     if (!shuffle) return items;
@@ -70,6 +72,12 @@ export default function TypingTask({
     setRound(1);
     setCompleted(false);
   }, [orderedItems]);
+
+  useEffect(() => {
+    if (completed) {
+      onComplete?.();
+    }
+  }, [completed, onComplete]);
 
   const currentId = queue[currentIndex];
   const currentItem = currentId ? itemsById.get(currentId) : undefined;

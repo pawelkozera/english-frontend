@@ -12,6 +12,7 @@ type MatchingTaskProps = {
   items: VocabItem[];
   direction: Exclude<VocabDirection, "BOTH">;
   shuffle?: boolean;
+  onComplete?: () => void;
 };
 
 const PAIR_COLORS = [
@@ -34,7 +35,7 @@ function shuffleItems(items: VocabItem[]) {
   return arr;
 }
 
-export default function MatchingTask({ items, direction, shuffle }: MatchingTaskProps) {
+export default function MatchingTask({ items, direction, shuffle, onComplete }: MatchingTaskProps) {
   const leftItems = useMemo(() => items, [items]);
   const rightItems = useMemo(() => (shuffle ? shuffleItems(items) : items), [items, shuffle]);
 
@@ -177,7 +178,14 @@ export default function MatchingTask({ items, direction, shuffle }: MatchingTask
       <p className="mt-3 text-xs text-muted-foreground">Drag a left item onto its match on the right.</p>
       {allMatched && (
         <div className="mt-4">
-          <Button onClick={() => setFinished(true)}>Finish task</Button>
+          <Button
+            onClick={() => {
+              onComplete?.();
+              setFinished(true);
+            }}
+          >
+            Finish task
+          </Button>
         </div>
       )}
     </div>

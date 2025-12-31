@@ -13,6 +13,7 @@ type McqTaskProps = {
   direction: Exclude<VocabDirection, "BOTH">;
   shuffle?: boolean;
   optionsCount?: number;
+  onComplete?: () => void;
 };
 
 function shuffleItems<T>(items: T[]) {
@@ -24,7 +25,7 @@ function shuffleItems<T>(items: T[]) {
   return arr;
 }
 
-export default function McqTask({ items, direction, shuffle, optionsCount = 4 }: McqTaskProps) {
+export default function McqTask({ items, direction, shuffle, optionsCount = 4, onComplete }: McqTaskProps) {
   const orderedItems = useMemo(() => {
     if (!shuffle) return items;
     return shuffleItems(items);
@@ -69,6 +70,12 @@ export default function McqTask({ items, direction, shuffle, optionsCount = 4 }:
     setSubmitted(false);
     setLastCorrect(null);
   }, [orderedItems]);
+
+  useEffect(() => {
+    if (completed) {
+      onComplete?.();
+    }
+  }, [completed, onComplete]);
 
   const currentId = queue[currentIndex];
   const currentItem = currentId ? itemsById.get(currentId) : undefined;

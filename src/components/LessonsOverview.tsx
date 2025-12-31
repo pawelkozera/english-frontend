@@ -1,14 +1,18 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import type { LessonAssignmentResponse, MemberResponse } from "../api/types";
+import type { LessonAssignmentResponse, LessonResponse, MemberResponse } from "../api/types";
 import {
   listMyGroupWideLessonAssignments,
   listMyPersonalLessonAssignments,
   listGroupLessonAssignmentsPaged,
   reorderGroupLessonAssignments,
 } from "../api/lessonAssignmentsApi";
+import { getMyLessonProgress, getStudentLessonProgress } from "../api/lessonProgressApi";
+import { getLesson } from "../api/lessonsApi";
 import { useAccessToken } from "../lib/auth";
 import { Button } from "./ui/button";
+import LessonProgressSummary from "./LessonProgressSummary";
+import { useNavigate } from "react-router-dom";
 
 type LessonsTab = "group" | "personal";
 
@@ -85,6 +89,7 @@ function formatAvailability(assignment: LessonAssignmentResponse) {
 export default function LessonsOverview({ groupId, isTeacher, members }: LessonsOverviewProps) {
   const [activeTab, setActiveTab] = useState<LessonsTab>("group");
   const [selectedMemberId, setSelectedMemberId] = useState<number | null>(null);
+  const [selectedProgressMemberId, setSelectedProgressMemberId] = useState<number | null>(null);
   const [groupAssignments, setGroupAssignments] = useState<LessonAssignmentResponse[]>([]);
   const [groupAssignmentsBase, setGroupAssignmentsBase] = useState<LessonAssignmentResponse[]>([]);
   const [memberAssignments, setMemberAssignments] = useState<LessonAssignmentResponse[]>([]);
@@ -92,10 +97,13 @@ export default function LessonsOverview({ groupId, isTeacher, members }: Lessons
   const [dragAssignmentId, setDragAssignmentId] = useState<number | null>(null);
   const [savingOrder, setSavingOrder] = useState(false);
   const [orderError, setOrderError] = useState<string | null>(null);
+  const [lessonLookup, setLessonLookup] = useState<Record<number, LessonResponse>>({});
   const lastGroupId = useRef<number | null>(null);
   const lastGroupListId = useRef<number | null>(null);
   const lastMemberKey = useRef<string | null>(null);
+  const lastProgressKey = useRef<string | null>(null);
   const accessToken = useAccessToken();
+  const nav = useNavigate();
 
   const currentMemberId = useMemo(
     () => resolveMemberIdFromToken(accessToken, members),
@@ -123,6 +131,31 @@ export default function LessonsOverview({ groupId, isTeacher, members }: Lessons
       setSelectedMemberId(defaultId);
     }
   }, [currentMemberId, groupId, isTeacher, members, selectedMemberId]);
+
+  useEffect(() => {
+    if (!isTeacher) {
+      setSelectedProgressMemberId(null);
+      lastProgressKey.current = null;
+      return;
+    }
+    if (!groupId) {
+      setSelectedProgressMemberId(null);
+      lastProgressKey.current = null;
+      return;
+    }
+    const progressKey = `${groupId}`;
+    if (lastProgressKey.current !== progressKey) {
+      lastProgressKey.current = progressKey;
+      setSelectedProgressMemberId(currentMemberId ?? (members.length ? members[0].userId : null));
+      return;
+    }
+    const exists = selectedProgressMemberId
+      ? members.some((member) => member.userId === selectedProgressMemberId)
+      : false;
+    if (!exists) {
+      setSelectedProgressMemberId(currentMemberId ?? (members.length ? members[0].userId : null));
+    }
+  }, [currentMemberId, groupId, isTeacher, members, selectedProgressMemberId]);
 
   const groupAssignmentsQuery = useQuery({
     queryKey: ["lessonAssignments", "me", "group", groupId],
@@ -320,6 +353,79 @@ export default function LessonsOverview({ groupId, isTeacher, members }: Lessons
       ? memberAssignments
       : availablePersonalAssignments;
 
+  const missingLessonIds = useMemo(() => {
+    const ids = new Set<number>();
+    assignments.forEach((assignment) => {
+      if (!lessonLookup[assignment.lessonId]) ids.add(assignment.lessonId);
+    });
+    return Array.from(ids);
+  }, [assignments, lessonLookup]);
+
+  useEffect(() => {
+    if (!missingLessonIds.length) return;
+    let cancelled = false;
+    (async () => {
+      for (const lessonId of missingLessonIds) {
+        try {
+          const lesson = await getLesson(lessonId);
+          if (cancelled) return;
+          setLessonLookup((prev) => ({ ...prev, [lessonId]: lesson }));
+        } catch {
+          if (cancelled) return;
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [missingLessonIds]);
+
+  const progressAssignmentIds = useMemo(() => {
+    return assignments.map((assignment) => assignment.id);
+  }, [assignments]);
+
+  const progressQuery = useQuery({
+    queryKey: ["lessonProgress", groupId, activeTab, selectedProgressMemberId ?? "me", selectedMemberId ?? "me", progressAssignmentIds],
+    queryFn: async () => {
+      if (isTeacher) {
+        const userId = activeTab === "group" ? (selectedProgressMemberId as number) : (selectedMemberId as number);
+        const items = await Promise.all(
+          progressAssignmentIds.map((assignmentId) =>
+            getStudentLessonProgress(groupId as number, assignmentId, userId)
+          )
+        );
+        return items;
+      }
+      const items = await Promise.all(
+        progressAssignmentIds.map((assignmentId) => getMyLessonProgress(assignmentId))
+      );
+      return items;
+    },
+    enabled:
+      !!groupId &&
+      progressAssignmentIds.length > 0 &&
+      (!isTeacher || (activeTab === "group" ? !!selectedProgressMemberId : !!selectedMemberId)),
+  });
+
+
+  const progressMap = useMemo(() => {
+    const map = new Map<
+      number,
+      { status: string; completedTaskIds: number[]; completedAt: string | null; doneCount: number; totalCount: number }
+    >();
+    (progressQuery.data ?? []).forEach((progress) => {
+      map.set(progress.assignmentId, {
+        status: progress.status,
+        completedTaskIds: progress.completedTaskIds ?? [],
+        completedAt: progress.completedAt ?? null,
+        doneCount: progress.doneCount,
+        totalCount: progress.totalCount,
+      });
+    });
+    return map;
+  }, [progressQuery.data]);
+
+
   return (
     <section className="space-y-6 rounded-2xl border bg-card/70 p-6 shadow-sm backdrop-blur">
       <div>
@@ -341,6 +447,25 @@ export default function LessonsOverview({ groupId, isTeacher, members }: Lessons
           Assigned to member
         </Button>
       </nav>
+
+      {activeTab === "group" && isTeacher && (
+        <div className="max-w-sm space-y-2">
+          <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Progress for</p>
+          <select
+            className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+            value={selectedProgressMemberId ?? ""}
+            onChange={(e) => setSelectedProgressMemberId(e.target.value ? Number(e.target.value) : null)}
+            disabled={!members.length}
+          >
+            {!members.length && <option value="">No members in this group</option>}
+            {members.map((member) => (
+              <option key={member.userId} value={member.userId}>
+                {member.email} ({member.role})
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
 
       {activeTab === "personal" && isTeacher && (
         <div className="max-w-sm space-y-2">
@@ -403,33 +528,56 @@ export default function LessonsOverview({ groupId, isTeacher, members }: Lessons
           )}
           {assignments.length > 0 && (
             <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {assignments.map((assignment) => (
-                <li
-                  key={assignment.id}
-                  className={`rounded-xl border bg-background/70 p-4 ${
-                    dragAssignmentId === assignment.id ? "opacity-60" : ""
-                  }`}
-                  draggable={isTeacher}
-                  onDragStart={() => setDragAssignmentId(assignment.id)}
-                  onDragOver={(e) => e.preventDefault()}
-                  onDrop={() => handleDropAssignment(assignment.id, activeTab)}
-                  onDragEnd={() => setDragAssignmentId(null)}
-                >
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div>
-                      <p className="text-base font-semibold text-foreground">{assignment.lessonTitle}</p>
-                      <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
-                        {assignment.lessonStatus}
-                      </p>
+              {assignments.map((assignment) => {
+                const progress = progressMap.get(assignment.id);
+                return (
+                  <li
+                    key={assignment.id}
+                    className={`rounded-xl border bg-background/70 p-4 ${
+                      dragAssignmentId === assignment.id ? "opacity-60" : ""
+                    }`}
+                    draggable={isTeacher}
+                    onDragStart={() => setDragAssignmentId(assignment.id)}
+                    onDragOver={(e) => e.preventDefault()}
+                    onDrop={() => handleDropAssignment(assignment.id, activeTab)}
+                    onDragEnd={() => setDragAssignmentId(null)}
+                  >
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div>
+                        <p className="text-base font-semibold text-foreground">{assignment.lessonTitle}</p>
+                        <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
+                          {assignment.lessonStatus}
+                        </p>
+                        {(activeTab === "group" || activeTab === "personal") && (
+                          <p className="mt-2 text-xs text-muted-foreground">
+                            Progress:{" "}
+                            <LessonProgressSummary
+                              loading={progressQuery.isLoading}
+                              doneCount={progress?.doneCount}
+                              totalCount={progress?.totalCount}
+                            />
+                          </p>
+                        )}
+                      </div>
+                      <div className="text-right text-xs text-muted-foreground">
+                        <p>{formatAvailability(assignment)}</p>
+                        <Button
+                          variant="ghost"
+                          onClick={() => nav(`/app/lessons/${assignment.id}`, { state: { isTeacher } })}
+                          className="mt-2 h-7 px-2 text-xs"
+                        >
+                          Open lesson
+                        </Button>
+                      </div>
                     </div>
-                    <p className="text-xs text-muted-foreground">{formatAvailability(assignment)}</p>
-                  </div>
-                </li>
-              ))}
+                  </li>
+                );
+              })}
             </ul>
           )}
         </>
       )}
+
     </section>
   );
 }

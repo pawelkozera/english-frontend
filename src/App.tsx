@@ -6,6 +6,8 @@ import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import MainPage from "./pages/MainPage";
 import JoinInvitePage from "./pages/JoinInvitePage";
+import LessonTasksPage from "./pages/LessonTasksPage";
+import LessonTaskSolvePage from "./pages/LessonTaskSolvePage";
 
 export default function App() {
   return (
@@ -22,6 +24,22 @@ export default function App() {
           element={
             <RequireAuth>
               <MainPage />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/app/lessons/:assignmentId"
+          element={
+            <RequireAuth>
+              <LessonTasksPage />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/app/lessons/:assignmentId/tasks/:taskId"
+          element={
+            <RequireAuth>
+              <LessonTaskSolvePage />
             </RequireAuth>
           }
         />

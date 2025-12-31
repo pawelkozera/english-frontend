@@ -84,7 +84,9 @@ export default function YoutubeTask({ url, startSeconds, questions, answers, set
                   className="mt-3 min-h-[100px] w-full rounded-md border border-input bg-background p-2 text-sm"
                   value={(answers[idx] as string) ?? ""}
                   onChange={(e) =>
-                    setAnswers((prev) => prev.map((val, i) => (i === idx ? e.target.value : val)))
+                    setAnswers((prev) =>
+                      (Array.isArray(prev) ? prev : []).map((val, i) => (i === idx ? e.target.value : val))
+                    )
                   }
                 />
               )}
@@ -96,7 +98,11 @@ export default function YoutubeTask({ url, startSeconds, questions, answers, set
                       <input
                         type="radio"
                         checked={answers[idx] === optIndex}
-                        onChange={() => setAnswers((prev) => prev.map((val, i) => (i === idx ? optIndex : val)))}
+                        onChange={() =>
+                          setAnswers((prev) =>
+                            (Array.isArray(prev) ? prev : []).map((val, i) => (i === idx ? optIndex : val))
+                          )
+                        }
                       />
                       {opt}
                     </label>
@@ -110,7 +116,11 @@ export default function YoutubeTask({ url, startSeconds, questions, answers, set
                     <input
                       type="radio"
                       checked={answers[idx] === true}
-                      onChange={() => setAnswers((prev) => prev.map((val, i) => (i === idx ? true : val)))}
+                      onChange={() =>
+                        setAnswers((prev) =>
+                          (Array.isArray(prev) ? prev : []).map((val, i) => (i === idx ? true : val))
+                        )
+                      }
                     />
                     True
                   </label>
@@ -118,7 +128,11 @@ export default function YoutubeTask({ url, startSeconds, questions, answers, set
                     <input
                       type="radio"
                       checked={answers[idx] === false}
-                      onChange={() => setAnswers((prev) => prev.map((val, i) => (i === idx ? false : val)))}
+                      onChange={() =>
+                        setAnswers((prev) =>
+                          (Array.isArray(prev) ? prev : []).map((val, i) => (i === idx ? false : val))
+                        )
+                      }
                     />
                     False
                   </label>

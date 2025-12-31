@@ -293,3 +293,31 @@ export type ReorderLessonAssignmentsRequest = {
   userId?: number | null; // null/undefined => reorder group-wide bucket
   assignmentIds: number[];
 };
+
+export type LessonProgressStatus = "NOT_STARTED" | "IN_PROGRESS" | "COMPLETED";
+
+export type LessonProgressResponse = {
+  assignmentId: number;
+  lessonId: number;
+  status: "NOT_STARTED" | "IN_PROGRESS" | "COMPLETED";
+  startedAt: string | null;
+  completedAt: string | null;
+  completedTaskIds: number[];
+  doneCount: number;
+  totalCount: number;
+};
+
+export type LessonAnswerStatus = "DRAFT" | "SUBMITTED";
+
+export type LessonTaskAnswerResponse = {
+  assignmentId: number;
+  taskId: number;
+  status: LessonAnswerStatus;
+  answer: unknown | null;         // JSONB
+  updatedAt: string | null;
+  submittedAt: string | null;
+};
+
+export type LessonTaskAnswerRequest = {
+  answer: unknown; // JSON payload
+};

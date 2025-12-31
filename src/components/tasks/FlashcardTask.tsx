@@ -12,6 +12,7 @@ type FlashcardTaskProps = {
   items: VocabItem[];
   direction: VocabDirection;
   shuffle?: boolean;
+  onComplete?: () => void;
 };
 
 function shuffleItems(items: VocabItem[]) {
@@ -23,7 +24,7 @@ function shuffleItems(items: VocabItem[]) {
   return arr;
 }
 
-export default function FlashcardTask({ items, direction, shuffle }: FlashcardTaskProps) {
+export default function FlashcardTask({ items, direction, shuffle, onComplete }: FlashcardTaskProps) {
   const orderedItems = useMemo(() => {
     if (!shuffle) return items;
     return shuffleItems(items);
@@ -126,7 +127,14 @@ export default function FlashcardTask({ items, direction, shuffle }: FlashcardTa
             </Button>
           )}
           {index === total - 1 && revealed && (
-            <Button onClick={() => setCompleted(true)}>Finish task</Button>
+            <Button
+              onClick={() => {
+                onComplete?.();
+                setCompleted(true);
+              }}
+            >
+              Finish task
+            </Button>
           )}
         </div>
       </div>

@@ -1,15 +1,31 @@
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import type { Question } from "../../api/types";
 
 type ReadingTaskProps = {
   text: string;
   questions: Question[];
+  answers?: Array<string | number | boolean | null>;
+  onAnswersChange?: (value: Array<string | number | boolean | null>) => void;
 };
 
-export default function ReadingTask({ text, questions }: ReadingTaskProps) {
-  const [answers, setAnswers] = useState<Array<string | number | boolean | null>>(
-    questions.map(() => null)
+export default function ReadingTask({ text, questions, answers, onAnswersChange }: ReadingTaskProps) {
+  const [localAnswers, setLocalAnswers] = useState<Array<string | number | boolean | null>>(
+    answers ?? questions.map(() => null)
   );
+
+  const effectiveAnswers = answers ?? localAnswers;
+
+  useEffect(() => {
+    if (answers) return;
+    setLocalAnswers(questions.map(() => null));
+  }, [answers, questions]);
+
+  function updateAnswers(next: Array<string | number | boolean | null>) {
+    if (!answers) {
+      setLocalAnswers(next);
+    }
+    onAnswersChange?.(next);
+  }
 
   return (
     <div className="rounded-lg border bg-background/70 p-4">
@@ -34,9 +50,9 @@ export default function ReadingTask({ text, questions }: ReadingTaskProps) {
               {question.kind === "OPEN" && (
                 <textarea
                   className="mt-3 min-h-[100px] w-full rounded-md border border-input bg-background p-2 text-sm"
-                  value={(answers[idx] as string) ?? ""}
+                  value={(effectiveAnswers[idx] as string) ?? ""}
                   onChange={(e) =>
-                    setAnswers((prev) => prev.map((val, i) => (i === idx ? e.target.value : val)))
+                    updateAnswers(effectiveAnswers.map((val, i) => (i === idx ? e.target.value : val)))
                   }
                 />
               )}
@@ -47,9 +63,9 @@ export default function ReadingTask({ text, questions }: ReadingTaskProps) {
                     <label key={optIndex} className="flex items-center gap-2 text-sm text-muted-foreground">
                       <input
                         type="radio"
-                        checked={answers[idx] === optIndex}
+                        checked={effectiveAnswers[idx] === optIndex}
                         onChange={() =>
-                          setAnswers((prev) => prev.map((val, i) => (i === idx ? optIndex : val)))
+                          updateAnswers(effectiveAnswers.map((val, i) => (i === idx ? optIndex : val)))
                         }
                       />
                       {opt}
@@ -63,9 +79,9 @@ export default function ReadingTask({ text, questions }: ReadingTaskProps) {
                   <label className="flex items-center gap-2">
                     <input
                       type="radio"
-                      checked={answers[idx] === true}
+                      checked={effectiveAnswers[idx] === true}
                       onChange={() =>
-                        setAnswers((prev) => prev.map((val, i) => (i === idx ? true : val)))
+                        updateAnswers(effectiveAnswers.map((val, i) => (i === idx ? true : val)))
                       }
                     />
                     True
@@ -73,9 +89,9 @@ export default function ReadingTask({ text, questions }: ReadingTaskProps) {
                   <label className="flex items-center gap-2">
                     <input
                       type="radio"
-                      checked={answers[idx] === false}
+                      checked={effectiveAnswers[idx] === false}
                       onChange={() =>
-                        setAnswers((prev) => prev.map((val, i) => (i === idx ? false : val)))
+                        updateAnswers(effectiveAnswers.map((val, i) => (i === idx ? false : val)))
                       }
                     />
                     False
